@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 const fmt = (n) =>
   Number(n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
 
-const EMPTY_FORM = { nom: '', email: '' }
+const EMPTY_FORM = { nom: '', adresse: '', siret: '', tva: '' }
 
 export default function Clients() {
   const [clients, setClients] = useState([])
@@ -30,12 +30,21 @@ export default function Clients() {
 
   useEffect(() => { fetchClients() }, [])
 
+  const handleChange = (field) => (e) => setForm({ ...form, [field]: e.target.value })
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.nom.trim()) { setError('Le nom est requis.'); return }
     setSaving(true)
     setError('')
-    const { error: err } = await supabase.from('clients').insert({ nom: form.nom.trim(), email: form.email.trim() || null })
+
+    const { error: err } = await supabase.from('clients').insert({
+      nom: form.nom.trim(),
+      adresse: form.adresse.trim() || null,
+      siret: form.siret.trim() || null,
+      tva: form.tva.trim() || null,
+    })
+
     if (err) { setError(err.message); setSaving(false); return }
     setForm(EMPTY_FORM)
     setShowForm(false)
@@ -48,6 +57,9 @@ export default function Clients() {
     await supabase.from('clients').delete().eq('id', id)
     setClients((prev) => prev.filter((c) => c.id !== id))
   }
+
+  const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-700'
+  const labelCls = 'block text-xs font-medium text-gray-500 mb-1'
 
   return (
     <div>
@@ -64,39 +76,42 @@ export default function Clients() {
       {showForm && (
         <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6 mb-6">
           <h3 className="text-sm font-semibold text-gray-700 mb-4">Nouveau client</h3>
-          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              placeholder="Nom / entreprise *"
-              value={form.nom}
-              onChange={(e) => setForm({ ...form, nom: e.target.value })}
-              className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-700"
-            />
-            <input
-              type="email"
-              placeholder="Email (optionnel)"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-700"
-            />
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-4 py-2 bg-blue-900 text-white text-sm font-medium rounded-lg hover:bg-blue-800 disabled:opacity-60 transition-colors"
-              >
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Nom / entreprise *</label>
+                <input type="text" placeholder="Acme Corp" value={form.nom}
+                  onChange={handleChange('nom')} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Adresse</label>
+                <input type="text" placeholder="12 rue de la Paix, 75001 Paris" value={form.adresse}
+                  onChange={handleChange('adresse')} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>SIRET</label>
+                <input type="text" placeholder="123 456 789 00012" value={form.siret}
+                  onChange={handleChange('siret')} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>N° TVA intracommunautaire</label>
+                <input type="text" placeholder="FR 12 123456789" value={form.tva}
+                  onChange={handleChange('tva')} className={inputCls} />
+              </div>
+            </div>
+            {error && <p className="text-xs text-red-500">{error}</p>}
+            <div className="flex gap-2 pt-1">
+              <button type="submit" disabled={saving}
+                className="px-4 py-2 bg-blue-900 text-white text-sm font-medium rounded-lg hover:bg-blue-800 disabled:opacity-60 transition-colors">
                 {saving ? 'Enregistrement...' : 'Enregistrer'}
               </button>
-              <button
-                type="button"
+              <button type="button"
                 onClick={() => { setShowForm(false); setForm(EMPTY_FORM); setError('') }}
-                className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
+                className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                 Annuler
               </button>
             </div>
           </form>
-          {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
         </div>
       )}
 
@@ -115,14 +130,14 @@ export default function Clients() {
                   </div>
                   <div>
                     <p className="font-semibold text-gray-800">{c.nom}</p>
-                    <p className="text-xs text-gray-400">{c.email || 'Pas d\'email'}</p>
+                    {c.adresse && <p className="text-xs text-gray-400">{c.adresse}</p>}
+                    {c.siret && <p className="text-xs text-gray-400">SIRET {c.siret}</p>}
+                    {c.tva && <p className="text-xs text-gray-400">TVA {c.tva}</p>}
                   </div>
                 </div>
-                <button
-                  onClick={() => deleteClient(c.id)}
+                <button onClick={() => deleteClient(c.id)}
                   className="text-gray-200 hover:text-red-400 transition-colors text-xl leading-none ml-2"
-                  title="Supprimer"
-                >
+                  title="Supprimer">
                   ×
                 </button>
               </div>
