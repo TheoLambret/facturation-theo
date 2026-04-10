@@ -1,56 +1,113 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 
-const mockInvoices = [
-  { id: 'FAC-001', client: 'Acme Corp', date: '2026-03-15', amount: '1 800 €', status: 'Payée' },
-  { id: 'FAC-002', client: 'Beta SAS', date: '2026-03-28', amount: '950 €', status: 'En attente' },
-  { id: 'FAC-003', client: 'Gamma Ltd', date: '2026-04-01', amount: '2 400 €', status: 'En attente' },
-]
+const fmt = (n) =>
+  Number(n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
 
-const statusColor = {
-  'Payée': 'bg-green-100 text-green-700',
-  'En attente': 'bg-amber-100 text-amber-700',
-  'Annulée': 'bg-red-100 text-red-700',
+const STATUS_COLOR = {
+  'payée': 'bg-green-100 text-green-700',
+  'en attente': 'bg-amber-100 text-amber-700',
+  'en retard': 'bg-red-100 text-red-700',
 }
 
+const STATUTS = ['en attente', 'payée', 'en retard']
+
 export default function Invoices() {
+  const [factures, setFactures] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [updatingId, setUpdatingId] = useState(null)
+
+  const fetchFactures = () => {
+    supabase
+      .from('factures')
+      .select('*, clients(nom)')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setFactures(data || [])
+        setLoading(false)
+      })
+  }
+
+  useEffect(() => { fetchFactures() }, [])
+
+  const updateStatut = async (id, statut) => {
+    setUpdatingId(id)
+    await supabase.from('factures').update({ statut }).eq('id', id)
+    await fetchFactures()
+    setUpdatingId(null)
+  }
+
+  const deleteFacture = async (id) => {
+    if (!confirm('Supprimer cette facture ?')) return
+    await supabase.from('factures').delete().eq('id', id)
+    setFactures((prev) => prev.filter((f) => f.id !== id))
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-semibold text-gray-800">Factures</h2>
         <Link
           to="/factures/nouvelle"
-          className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+          className="px-4 py-2 bg-blue-900 text-white text-sm font-medium rounded-lg hover:bg-blue-800 transition-colors"
         >
           + Nouvelle facture
         </Link>
       </div>
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-            <tr>
-              <th className="px-6 py-3 text-left">N°</th>
-              <th className="px-6 py-3 text-left">Client</th>
-              <th className="px-6 py-3 text-left">Date</th>
-              <th className="px-6 py-3 text-right">Montant</th>
-              <th className="px-6 py-3 text-center">Statut</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {mockInvoices.map((inv) => (
-              <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 font-medium text-indigo-600">{inv.id}</td>
-                <td className="px-6 py-4 text-gray-700">{inv.client}</td>
-                <td className="px-6 py-4 text-gray-500">{inv.date}</td>
-                <td className="px-6 py-4 text-right font-medium text-gray-800">{inv.amount}</td>
-                <td className="px-6 py-4 text-center">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor[inv.status]}`}>
-                    {inv.status}
-                  </span>
-                </td>
+        {loading ? (
+          <p className="p-8 text-sm text-gray-400">Chargement...</p>
+        ) : factures.length === 0 ? (
+          <p className="p-8 text-sm text-gray-400">Aucune facture. Créez votre première facture.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+              <tr>
+                <th className="px-6 py-3 text-left">N°</th>
+                <th className="px-6 py-3 text-left">Client</th>
+                <th className="px-6 py-3 text-left">Description</th>
+                <th className="px-6 py-3 text-left">Date</th>
+                <th className="px-6 py-3 text-right">Montant HT</th>
+                <th className="px-6 py-3 text-center">Statut</th>
+                <th className="px-6 py-3"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {factures.map((f) => (
+                <tr key={f.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-semibold text-blue-900">{f.numero}</td>
+                  <td className="px-6 py-4 text-gray-700">{f.clients?.nom ?? '—'}</td>
+                  <td className="px-6 py-4 text-gray-500 max-w-xs truncate">{f.description || '—'}</td>
+                  <td className="px-6 py-4 text-gray-500">{f.date_emission}</td>
+                  <td className="px-6 py-4 text-right font-medium text-gray-800">{fmt(f.montant_ht)}</td>
+                  <td className="px-6 py-4 text-center">
+                    <select
+                      value={f.statut}
+                      disabled={updatingId === f.id}
+                      onChange={(e) => updateStatut(f.id, e.target.value)}
+                      className={`px-2 py-1 rounded-full text-xs font-medium border-0 cursor-pointer focus:ring-2 focus:ring-blue-500 ${STATUS_COLOR[f.statut] ?? 'bg-gray-100 text-gray-600'}`}
+                    >
+                      {STATUTS.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button
+                      onClick={() => deleteFacture(f.id)}
+                      className="text-gray-300 hover:text-red-400 transition-colors text-lg leading-none"
+                      title="Supprimer"
+                    >
+                      ×
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   )
