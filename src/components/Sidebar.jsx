@@ -5,6 +5,7 @@ const navItems = [
   { to: '/factures', label: 'Factures', icon: '◻' },
   { to: '/clients', label: 'Clients', icon: '◎' },
   { to: '/factures/nouvelle', label: 'Nouvelle facture', icon: '+' },
+  { to: '/parametres', label: 'Paramètres', icon: '⚙' },
 ]
 
 export default function Sidebar() {

@@ -18,6 +18,13 @@ export default function Invoices() {
   const [factures, setFactures] = useState([])
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState(null)
+  const [emetteur, setEmetteur] = useState(null)
+
+  useEffect(() => {
+    supabase.from('settings').select('*').eq('id', 1).single().then(({ data }) => {
+      if (data) setEmetteur(data)
+    })
+  }, [])
 
   const fetchFactures = () => {
     supabase
@@ -30,7 +37,7 @@ export default function Invoices() {
       })
   }
 
-  useEffect(() => { fetchFactures() }, [])
+  useEffect(() => { fetchFactures() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateStatut = async (id, statut) => {
     setUpdatingId(id)
@@ -102,7 +109,7 @@ export default function Invoices() {
                       </Link>
                       {/* Télécharger PDF */}
                       <button
-                        onClick={() => generatePdf(f)}
+                        onClick={() => generatePdf(f, emetteur)}
                         className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
                         title="Télécharger le PDF"
                       >

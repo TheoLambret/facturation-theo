@@ -10,6 +10,7 @@ export default function Clients() {
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingClient, setEditingClient] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -32,22 +33,49 @@ export default function Clients() {
 
   const handleChange = (field) => (e) => setForm({ ...form, [field]: e.target.value })
 
+  const openNew = () => {
+    setEditingClient(null)
+    setForm(EMPTY_FORM)
+    setError('')
+    setShowForm(true)
+  }
+
+  const openEdit = (c) => {
+    setEditingClient(c)
+    setForm({ nom: c.nom || '', adresse: c.adresse || '', siret: c.siret || '', tva: c.tva || '' })
+    setError('')
+    setShowForm(true)
+  }
+
+  const closeForm = () => {
+    setShowForm(false)
+    setEditingClient(null)
+    setForm(EMPTY_FORM)
+    setError('')
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.nom.trim()) { setError('Le nom est requis.'); return }
     setSaving(true)
     setError('')
 
-    const { error: err } = await supabase.from('clients').insert({
+    const payload = {
       nom: form.nom.trim(),
       adresse: form.adresse.trim() || null,
       siret: form.siret.trim() || null,
       tva: form.tva.trim() || null,
-    })
+    }
+
+    let err
+    if (editingClient) {
+      ;({ error: err } = await supabase.from('clients').update(payload).eq('id', editingClient.id))
+    } else {
+      ;({ error: err } = await supabase.from('clients').insert(payload))
+    }
 
     if (err) { setError(err.message); setSaving(false); return }
-    setForm(EMPTY_FORM)
-    setShowForm(false)
+    closeForm()
     setSaving(false)
     await fetchClients()
   }
@@ -66,7 +94,7 @@ export default function Clients() {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-semibold text-gray-800">Clients</h2>
         <button
-          onClick={() => { setShowForm(true); setError('') }}
+          onClick={openNew}
           className="px-4 py-2 bg-blue-900 text-white text-sm font-medium rounded-lg hover:bg-blue-800 transition-colors"
         >
           + Nouveau client
@@ -75,7 +103,9 @@ export default function Clients() {
 
       {showForm && (
         <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6 mb-6">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Nouveau client</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">
+            {editingClient ? `Modifier ${editingClient.nom}` : 'Nouveau client'}
+          </h3>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -103,10 +133,9 @@ export default function Clients() {
             <div className="flex gap-2 pt-1">
               <button type="submit" disabled={saving}
                 className="px-4 py-2 bg-blue-900 text-white text-sm font-medium rounded-lg hover:bg-blue-800 disabled:opacity-60 transition-colors">
-                {saving ? 'Enregistrement...' : 'Enregistrer'}
+                {saving ? 'Enregistrement...' : editingClient ? 'Mettre à jour' : 'Enregistrer'}
               </button>
-              <button type="button"
-                onClick={() => { setShowForm(false); setForm(EMPTY_FORM); setError('') }}
+              <button type="button" onClick={closeForm}
                 className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                 Annuler
               </button>
@@ -141,9 +170,17 @@ export default function Clients() {
                   ×
                 </button>
               </div>
-              <div className="flex justify-between text-sm text-gray-500 border-t border-gray-100 pt-3">
-                <span>{c.nbFactures} facture{c.nbFactures !== 1 ? 's' : ''}</span>
-                <span className="font-semibold text-blue-900">{fmt(c.ca)}</span>
+              <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+                <div className="flex gap-2 text-sm text-gray-500">
+                  <span>{c.nbFactures} facture{c.nbFactures !== 1 ? 's' : ''}</span>
+                  <span className="font-semibold text-blue-900">{fmt(c.ca)}</span>
+                </div>
+                <button
+                  onClick={() => openEdit(c)}
+                  className="px-2.5 py-1 text-xs font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                >
+                  Modifier
+                </button>
               </div>
             </div>
           ))}

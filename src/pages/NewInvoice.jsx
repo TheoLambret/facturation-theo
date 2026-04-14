@@ -2,14 +2,6 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
-const EMETTEUR = {
-  nom: 'Théo LAMBRET',
-  adresse: '34 route de Laumont',
-  ville: '63800 Cournon d\'Auvergne',
-  siret: '941 296 998 00011',
-  tva: 'FR 40 941 296 998',
-}
-
 const TVA_RATE = 0.20
 
 function genNumero(count) {
@@ -32,6 +24,13 @@ export default function NewInvoice() {
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [emetteur, setEmetteur] = useState(null)
+
+  useEffect(() => {
+    supabase.from('settings').select('*').eq('id', 1).single().then(({ data }) => {
+      if (data) setEmetteur(data)
+    })
+  }, [])
 
   useEffect(() => {
     // Charger les clients
@@ -98,9 +97,21 @@ export default function NewInvoice() {
         {/* Bloc émetteur (lecture seule) */}
         <div className="bg-blue-950 text-white rounded-xl p-5">
           <p className="text-xs font-medium text-blue-400 uppercase tracking-wider mb-3">Émetteur</p>
-          <p className="font-semibold text-white">{EMETTEUR.nom}</p>
-          <p className="text-sm text-blue-200 mt-0.5">{EMETTEUR.adresse}, {EMETTEUR.ville}</p>
-          <p className="text-xs text-blue-400 mt-2">SIRET {EMETTEUR.siret} · TVA {EMETTEUR.tva}</p>
+          {emetteur ? (
+            <>
+              <p className="font-semibold text-white">{emetteur.nom}</p>
+              {(emetteur.adresse || emetteur.ville) && (
+                <p className="text-sm text-blue-200 mt-0.5">{[emetteur.adresse, emetteur.ville].filter(Boolean).join(', ')}</p>
+              )}
+              <p className="text-xs text-blue-400 mt-2">
+                {emetteur.siret && `SIRET ${emetteur.siret}`}
+                {emetteur.siret && emetteur.tva && ' · '}
+                {emetteur.tva && `TVA ${emetteur.tva}`}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-blue-300">Configurez vos informations dans <a href="/parametres" className="underline">Paramètres</a>.</p>
+          )}
         </div>
 
         {/* Numéro + date */}

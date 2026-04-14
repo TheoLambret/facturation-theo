@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf'
 
-const EMETTEUR = {
+const EMETTEUR_DEFAULT = {
   nom: 'Théo LAMBRET',
   adresse: '34 route de Laumont',
   ville: '63800 Cournon d\'Auvergne',
@@ -15,11 +15,18 @@ const GRAY = [100, 100, 100]
 const LIGHT_GRAY = [240, 242, 245]
 const BLACK = [30, 30, 30]
 
+// Remplace les espaces insécables (U+202F, U+00A0) par des espaces normaux
+// pour éviter l'affichage "3/000,00 €" dans jsPDF
 function fmt(n) {
-  return Number(n || 0).toLocaleString('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-  })
+  return Number(n || 0)
+    .toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+    .replace(/[\u202f\u00a0]/g, ' ')
+}
+
+function fmtNum(n) {
+  return Number(n || 0)
+    .toLocaleString('fr-FR')
+    .replace(/[\u202f\u00a0]/g, ' ')
 }
 
 function fmtDate(str) {
@@ -28,7 +35,8 @@ function fmtDate(str) {
   return `${d}/${m}/${y}`
 }
 
-export function generatePdf(facture) {
+export function generatePdf(facture, emetteur) {
+  const EMETTEUR = emetteur || EMETTEUR_DEFAULT
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
 
   const W = 210
@@ -141,8 +149,8 @@ export function generatePdf(facture) {
   doc.setFontSize(9)
   doc.setTextColor(...BLACK)
   doc.text(facture.description || '—', ml + 2, y)
-  doc.text(String(facture.jours ?? '—'), ml + 100, y, { align: 'center' })
-  doc.text(`${facture.tjm ?? '—'} €/j`, ml + 127, y, { align: 'center' })
+  doc.text(fmtNum(facture.jours ?? 0), ml + 100, y, { align: 'center' })
+  doc.text(`${fmtNum(facture.tjm ?? 0)} €/j`, ml + 127, y, { align: 'center' })
   doc.text(fmt(montantHT), W - mr - 2, y, { align: 'right' })
 
   // Ligne séparatrice sous la ligne
@@ -190,12 +198,14 @@ export function generatePdf(facture) {
   doc.setTextColor(...GRAY)
 
   const mention1 =
-    'En application de la loi N° 92-1442 du 31-12-92, cette facture est payable à l\'échéance indiquée ci-dessus sans escompte pour règlement anticipé.'
-  const mention2 = 'TVA : 20 % — N° TVA intracommunautaire : FR 40 941 296 998'
+    'En application de la loi N° 92-1442 du 31-12-92, cette facture est payable à réception sans escompte pour règlement anticipé.'
+  const mention2 = `TVA : 20 % — N° TVA intracommunautaire : ${EMETTEUR.tva}`
+  const mention3 = `SIRET : ${EMETTEUR.siret} — Micro-entrepreneur dispensé d'immatriculation au RCS et au RM.`
 
   const lines1 = doc.splitTextToSize(mention1, cw)
   doc.text(lines1, ml, mentionY)
   doc.text(mention2, ml, mentionY + lines1.length * 4 + 1)
+  doc.text(mention3, ml, mentionY + lines1.length * 4 + 5)
 
   // ── SAUVEGARDE ───────────────────────────────────────────────
   doc.save(`${facture.numero}.pdf`)
