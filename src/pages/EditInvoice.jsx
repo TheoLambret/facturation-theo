@@ -58,7 +58,6 @@ export default function EditInvoice() {
       description: form.description.trim(),
       jours,
       tjm,
-      montant_ht: montantHT,
       date_emission: form.date_emission,
       statut: form.statut,
     }).eq('id', id)
@@ -115,7 +114,7 @@ export default function EditInvoice() {
             </div>
             <div>
               <label className={labelCls}>TJM (€) *</label>
-              <input type="number" min="1" step="10" value={form.tjm} onChange={handleChange('tjm')} className={inputCls} />
+              <input type="number" min="1" step="1" value={form.tjm} onChange={handleChange('tjm')} className={inputCls} />
             </div>
           </div>
 

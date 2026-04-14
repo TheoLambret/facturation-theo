@@ -74,7 +74,6 @@ export default function NewInvoice() {
       description: form.description.trim(),
       jours,
       tjm,
-      montant_ht: montantHT,
       date_emission: form.date_emission,
       statut: form.statut,
     })
@@ -177,7 +176,7 @@ export default function NewInvoice() {
               <input
                 type="number"
                 min="1"
-                step="10"
+                step="1"
                 value={form.tjm}
                 onChange={handleChange('tjm')}
                 className={inputCls}
