@@ -3,16 +3,16 @@ import jsPDF from 'jspdf'
 const EMETTEUR_DEFAULT = {
   nom: 'Théo LAMBRET',
   adresse: '34 route de Laumont',
-  ville: '63800 Cournon d\'Auvergne',
+  ville: "63800 Cournon d'Auvergne",
   siret: '941 296 998 00011',
   tva: 'FR 40 941 296 998',
 }
 
 const TVA_RATE = 0.20
 
-const NAVY = [15, 40, 80]
+const NAVY = [30, 58, 95]       // #1E3A5F
 const GRAY = [100, 100, 100]
-const LIGHT_GRAY = [240, 242, 245]
+const LIGHT_GRAY = [245, 246, 248]
 const BLACK = [30, 30, 30]
 
 // Remplace les espaces insécables (U+202F, U+00A0) par des espaces normaux
@@ -46,29 +46,29 @@ export function generatePdf(facture, emetteur) {
   const cw = W - ml - mr  // content width
 
   // ── HEADER BAR ────────────────────────────────────────────────
+  const headerH = 22
   doc.setFillColor(...NAVY)
-  doc.rect(0, 0, W, 18, 'F')
+  doc.rect(0, 0, W, headerH, 'F')
 
   doc.setTextColor(255, 255, 255)
-  doc.setFontSize(13)
+  doc.setFontSize(18)
   doc.setFont('helvetica', 'bold')
-  doc.text('FACTURE', ml, 12)
+  doc.text('FACTURE', ml, 14.5)
 
-  doc.setFontSize(11)
+  doc.setFontSize(12)
   doc.setFont('helvetica', 'normal')
-  doc.text(`N° ${facture.numero}`, ml + 28, 12)
+  doc.text(`N° ${facture.numero}`, ml + 46, 14.5)
 
   doc.setFontSize(10)
-  doc.text(`Date : ${fmtDate(facture.date_emission)}`, W - mr, 12, { align: 'right' })
+  doc.text(`Date : ${fmtDate(facture.date_emission)}`, W - mr, 14.5, { align: 'right' })
 
   // ── EMETTEUR (gauche) ─────────────────────────────────────────
-  let y = 30
+  let y = 32
 
   doc.setTextColor(...NAVY)
   doc.setFontSize(9)
   doc.setFont('helvetica', 'bold')
   doc.text('ÉMETTEUR', ml, y)
-
   doc.setDrawColor(...NAVY)
   doc.line(ml, y + 1.5, ml + 38, y + 1.5)
 
@@ -92,7 +92,7 @@ export function generatePdf(facture, emetteur) {
 
   // ── CLIENT (droite) ──────────────────────────────────────────
   const cx = W / 2 + 5
-  let cy = 30
+  let cy = 32
 
   doc.setTextColor(...NAVY)
   doc.setFontSize(9)
@@ -119,48 +119,46 @@ export function generatePdf(facture, emetteur) {
   if (client.tva)     { doc.text(`N° TVA : ${client.tva}`, cx, cy); cy += 5 }
 
   // ── SÉPARATEUR ───────────────────────────────────────────────
-  y = 78
-  doc.setDrawColor(...LIGHT_GRAY)
-  doc.setLineWidth(0.5)
+  y = 80
+  doc.setDrawColor(232, 234, 237)
+  doc.setLineWidth(0.4)
   doc.line(ml, y, W - mr, y)
 
   // ── TABLEAU PRESTATIONS ───────────────────────────────────────
-  y = 85
+  y = 88
 
-  // En-tête tableau
-  doc.setFillColor(...LIGHT_GRAY)
-  doc.rect(ml, y - 5, cw, 8, 'F')
+  // En-tête tableau — bleu marine
+  doc.setFillColor(...NAVY)
+  doc.rect(ml, y - 5.5, cw, 9, 'F')
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(9)
-  doc.setTextColor(...NAVY)
-  doc.text('Description', ml + 2, y)
+  doc.setTextColor(255, 255, 255)
+  doc.text('Description', ml + 3, y)
   doc.text('Jours', ml + 100, y, { align: 'center' })
-  doc.text('TJM', ml + 127, y, { align: 'center' })
+  doc.text('TJM', ml + 130, y, { align: 'center' })
   doc.text('Montant HT', W - mr - 2, y, { align: 'right' })
 
-  // Ligne de données
+  // Ligne de données — gris très clair
   y += 10
   const montantHT = Number(facture.montant_ht || 0)
   const tvaAmount = montantHT * TVA_RATE
   const ttc = montantHT + tvaAmount
 
+  doc.setFillColor(...LIGHT_GRAY)
+  doc.rect(ml, y - 5.5, cw, 9, 'F')
+
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.setTextColor(...BLACK)
-  doc.text(facture.description || '—', ml + 2, y)
+  doc.text(facture.description || '—', ml + 3, y)
   doc.text(fmtNum(facture.jours ?? 0), ml + 100, y, { align: 'center' })
-  doc.text(`${fmtNum(facture.tjm ?? 0)} €/j`, ml + 127, y, { align: 'center' })
+  doc.text(`${fmtNum(facture.tjm ?? 0)} €/j`, ml + 130, y, { align: 'center' })
   doc.text(fmt(montantHT), W - mr - 2, y, { align: 'right' })
 
-  // Ligne séparatrice sous la ligne
-  y += 4
-  doc.setDrawColor(...LIGHT_GRAY)
-  doc.line(ml, y, W - mr, y)
-
-  // ── TOTAUX ───────────────────────────────────────────────────
-  y += 10
-  const totalsX = W - mr - 70
+  // ── TOTAUX (bas droite) ───────────────────────────────────────
+  y += 14
+  const totalsX = W - mr - 72
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
@@ -180,16 +178,16 @@ export function generatePdf(facture, emetteur) {
 
   y += 6
   doc.setFillColor(...NAVY)
-  doc.rect(totalsX - 3, y - 5, W - mr - totalsX + 5, 9, 'F')
+  doc.rect(totalsX - 3, y - 5.5, W - mr - totalsX + 5, 10, 'F')
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(10)
   doc.setTextColor(255, 255, 255)
   doc.text('TOTAL TTC', totalsX, y)
   doc.text(fmt(ttc), W - mr - 2, y, { align: 'right' })
 
-  // ── MENTIONS LÉGALES ─────────────────────────────────────────
-  const mentionY = H - 30
-  doc.setDrawColor(...LIGHT_GRAY)
+  // ── MENTIONS LÉGALES (bas gauche) ─────────────────────────────
+  const mentionY = H - 28
+  doc.setDrawColor(232, 234, 237)
   doc.setLineWidth(0.3)
   doc.line(ml, mentionY - 4, W - mr, mentionY - 4)
 
@@ -206,6 +204,19 @@ export function generatePdf(facture, emetteur) {
   doc.text(lines1, ml, mentionY)
   doc.text(mention2, ml, mentionY + lines1.length * 4 + 1)
   doc.text(mention3, ml, mentionY + lines1.length * 4 + 5)
+
+  // ── PIED DE PAGE ─────────────────────────────────────────────
+  doc.setFillColor(...NAVY)
+  doc.rect(0, H - 12, W, 12, 'F')
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(8)
+  doc.setTextColor(255, 255, 255)
+  doc.text(EMETTEUR.nom, ml, H - 5)
+
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(255, 255, 255, 0.6)
+  doc.text(`SIRET : ${EMETTEUR.siret}`, W - mr, H - 5, { align: 'right' })
 
   // ── SAUVEGARDE ───────────────────────────────────────────────
   doc.save(`${facture.numero}.pdf`)

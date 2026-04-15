@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { generatePdf } from '../lib/generatePdf'
+import InvoicePreviewModal from '../components/InvoicePreviewModal'
 
 const fmt = (n) =>
   Number(n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
@@ -19,6 +20,7 @@ export default function Invoices() {
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState(null)
   const [emetteur, setEmetteur] = useState(null)
+  const [previewFacture, setPreviewFacture] = useState(null)
 
   useEffect(() => {
     supabase.from('settings').select('*').eq('id', 1).single().then(({ data }) => {
@@ -100,6 +102,17 @@ export default function Invoices() {
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center justify-end gap-2">
+                      {/* Voir */}
+                      <button
+                        onClick={() => setPreviewFacture(f)}
+                        className="px-2.5 py-1 text-xs font-medium text-white rounded-md transition-colors"
+                        style={{ backgroundColor: '#1E3A5F' }}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#162d4d')}
+                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#1E3A5F')}
+                        title="Prévisualiser"
+                      >
+                        Voir
+                      </button>
                       {/* Modifier */}
                       <Link
                         to={`/factures/${f.id}/modifier`}
@@ -131,6 +144,15 @@ export default function Invoices() {
           </table>
         )}
       </div>
+
+      {/* Modale de prévisualisation */}
+      {previewFacture && (
+        <InvoicePreviewModal
+          facture={previewFacture}
+          emetteur={emetteur}
+          onClose={() => setPreviewFacture(null)}
+        />
+      )}
     </div>
   )
 }
