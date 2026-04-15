@@ -1,3 +1,4 @@
+import { Download } from 'lucide-react'
 import { generatePdf } from '../lib/generatePdf'
 
 const EMETTEUR_DEFAULT = {
@@ -49,11 +50,13 @@ export default function InvoicePreviewModal({ facture, emetteur, onClose }) {
         <div className="flex gap-3">
           <button
             onClick={() => generatePdf(facture, emetteur)}
-            className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors"
             style={{ backgroundColor: '#1E3A5F' }}
             onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#162d4d')}
             onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#1E3A5F')}
+            title="Télécharger le PDF"
           >
+            <Download size={15} strokeWidth={2} />
             Télécharger PDF
           </button>
           <button

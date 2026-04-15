@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { generatePdf } from '../lib/generatePdf'
+import { Download } from 'lucide-react'
 import InvoicePreviewModal from '../components/InvoicePreviewModal'
 
 const fmt = (n) =>
@@ -123,10 +124,10 @@ export default function Invoices() {
                       {/* Télécharger PDF */}
                       <button
                         onClick={() => generatePdf(f, emetteur)}
-                        className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                        className="p-1.5 text-gray-500 hover:text-blue-900 hover:bg-blue-50 rounded-md transition-colors"
                         title="Télécharger le PDF"
                       >
-                        PDF
+                        <Download size={15} strokeWidth={2} />
                       </button>
                       {/* Supprimer */}
                       <button
